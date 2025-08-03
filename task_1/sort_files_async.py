@@ -1,9 +1,9 @@
 import asyncio
 import argparse
-import shutil
 import logging
 from pathlib import Path
 from aiopath import AsyncPath
+import aioshutil
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,10 +17,14 @@ async def read_folder(source_path: AsyncPath, output_path: AsyncPath):
 
     paths = await asyncio.to_thread(sync_rglob)
 
+    tasks = []
     for path in paths:
         async_file = AsyncPath(path)
         if await async_file.is_file():
-            asyncio.create_task(copy_file(async_file, output_path))
+            task = asyncio.create_task(copy_file(async_file, output_path))
+            tasks.append(task)
+
+    await asyncio.gather(*tasks)
 
 
 async def copy_file(file_path: AsyncPath, output_path: AsyncPath):
@@ -32,7 +36,7 @@ async def copy_file(file_path: AsyncPath, output_path: AsyncPath):
 
         target_file_path = target_dir / file_path.name
 
-        await asyncio.to_thread(shutil.copy2, file_path, target_file_path)
+        await aioshutil.copyfile(file_path, target_file_path)
 
         logging.info(f"Copied: {file_path.name} -> {target_dir}/")
     except Exception as e:
@@ -65,7 +69,7 @@ async def main():
     logging.info(
         f"Start sorting files from '{source_path}' to '{output_path}' ...")
     await read_folder(source_path, output_path)
-    logging.info(f"Sorting is complete!")
+    logging.info("Sorting is complete!")
 
 
 if __name__ == "__main__":

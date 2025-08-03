@@ -1,8 +1,9 @@
+import os
 import requests
 import re
 import matplotlib.pyplot as plt
 from collections import Counter
-from multiprocessing import Pool, cpu_count
+from concurrent.futures import ThreadPoolExecutor
 
 
 def fetch_text_from_url(url):
@@ -45,11 +46,11 @@ if __name__ == '__main__':
     url = "https://www.gutenberg.org/files/84/84-0.txt"
     text = fetch_text_from_url(url)
 
-    num_cores = cpu_count()
+    num_cores = os.cpu_count() or 4
     chunks = split_text(text, num_cores)
 
-    with Pool(num_cores) as pool:
-        mapped = pool.map(map_function, chunks)
+    with ThreadPoolExecutor(num_cores) as executor:
+        mapped = list(executor.map(map_function, chunks))
 
     word_counts = reduce_function(mapped)
 
